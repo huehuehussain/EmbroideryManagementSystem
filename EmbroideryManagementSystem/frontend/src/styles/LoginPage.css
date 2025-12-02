@@ -1,0 +1,62 @@
+/* Stub CSS files for remaining pages */
+
+/* InventoryPage.css */
+.inventory-page {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+/* MachinesPage.css */
+.machines-page {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+/* DesignsPage.css */
+.designs-page {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+/* CustomerOrdersPage.css */
+.customer-orders-page {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+/* OperatorLogsPage.css */
+.operator-logs-page {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+/* AuditLogsPage.css */
+.audit-logs-page {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.export-section {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 30px;
+  display: flex;
+  gap: 10px;
+}
+
+.ip {
+  font-family: monospace;
+  font-size: 12px;
+  color: #7f8c8d;
+}
+
+.quality {
+  color: #27ae60;
+  font-weight: 600;
+}
+
+.LoginPage.css
+.login-page {
+  min-height: 100vh;
+}

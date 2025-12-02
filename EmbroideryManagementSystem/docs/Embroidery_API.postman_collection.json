@@ -1,0 +1,197 @@
+{
+  "info": {
+    "_postman_id": "embroidery-api-collection",
+    "name": "Embroidery Management API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\":\"John Doe\",\"email\":\"john@example.com\",\"password\":\"password123\",\"role\":\"operator\"}"
+            },
+            "url": {"raw": "http://localhost:5000/api/auth/register", "protocol": "http", "host": ["localhost"], "port": ["5000"], "path": ["api", "auth", "register"]}
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"admin@embroidery.com\",\"password\":\"admin123\"}"
+            },
+            "url": {"raw": "http://localhost:5000/api/auth/login", "protocol": "http", "host": ["localhost"], "port": ["5000"], "path": ["api", "auth", "login"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "Work Orders",
+      "item": [
+        {
+          "name": "Get All Work Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer YOUR_TOKEN"}
+            ],
+            "url": {"raw": "http://localhost:5000/api/work-orders", "protocol": "http", "host": ["localhost"], "port": ["5000"], "path": ["api", "work-orders"]}
+          }
+        },
+        {
+          "name": "Create Work Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer YOUR_TOKEN"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"work_order_number\":\"WO-2024-001\",\"machine_id\":1,\"design_id\":1,\"customer_order_id\":1,\"quantity_to_produce\":100,\"thread_colors_required\":[\"Red\",\"Blue\"],\"thread_quantities\":[50,30]}"
+            },
+            "url": {"raw": "http://localhost:5000/api/work-orders", "protocol": "http", "host": ["localhost"], "port": ["5000"], "path": ["api", "work-orders"]}
+          }
+        },
+        {
+          "name": "Start Work Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer YOUR_TOKEN"}
+            ],
+            "url": {"raw": "http://localhost:5000/api/work-orders/1/start", "protocol": "http", "host": ["localhost"], "port": ["5000"], "path": ["api", "work-orders", "1", "start"]}
+          }
+        },
+        {
+          "name": "Calculate Cost",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer YOUR_TOKEN"}
+            ],
+            "url": {"raw": "http://localhost:5000/api/work-orders/1/calculate-cost", "protocol": "http", "host": ["localhost"], "port": ["5000"], "path": ["api", "work-orders", "1", "calculate-cost"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "Inventory",
+      "item": [
+        {
+          "name": "Get All Items",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer YOUR_TOKEN"}
+            ],
+            "url": {"raw": "http://localhost:5000/api/inventory", "protocol": "http", "host": ["localhost"], "port": ["5000"], "path": ["api", "inventory"]}
+          }
+        },
+        {
+          "name": "Create Item",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer YOUR_TOKEN"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"item_name\":\"Red Thread\",\"item_type\":\"thread\",\"quantity_available\":500,\"minimum_stock_level\":100,\"unit_cost\":2.50}"
+            },
+            "url": {"raw": "http://localhost:5000/api/inventory", "protocol": "http", "host": ["localhost"], "port": ["5000"], "path": ["api", "inventory"]}
+          }
+        },
+        {
+          "name": "Get Low Stock Items",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer YOUR_TOKEN"}
+            ],
+            "url": {"raw": "http://localhost:5000/api/inventory/low-stock", "protocol": "http", "host": ["localhost"], "port": ["5000"], "path": ["api", "inventory", "low-stock"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "Machines",
+      "item": [
+        {
+          "name": "Get All Machines",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer YOUR_TOKEN"}
+            ],
+            "url": {"raw": "http://localhost:5000/api/machines", "protocol": "http", "host": ["localhost"], "port": ["5000"], "path": ["api", "machines"]}
+          }
+        },
+        {
+          "name": "Validate Thread Colors",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer YOUR_TOKEN"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"thread_colors\":[\"Red\",\"Blue\",\"Green\"]}"
+            },
+            "url": {"raw": "http://localhost:5000/api/machines/1/validate-colors", "protocol": "http", "host": ["localhost"], "port": ["5000"], "path": ["api", "machines", "1", "validate-colors"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Get Overview",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer YOUR_TOKEN"}
+            ],
+            "url": {"raw": "http://localhost:5000/api/dashboard/overview", "protocol": "http", "host": ["localhost"], "port": ["5000"], "path": ["api", "dashboard", "overview"]}
+          }
+        },
+        {
+          "name": "Get Production Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer YOUR_TOKEN"}
+            ],
+            "url": {"raw": "http://localhost:5000/api/dashboard/production-summary", "protocol": "http", "host": ["localhost"], "port": ["5000"], "path": ["api", "dashboard", "production-summary"]}
+          }
+        },
+        {
+          "name": "Get Pending Alerts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer YOUR_TOKEN"}
+            ],
+            "url": {"raw": "http://localhost:5000/api/dashboard/pending-alerts", "protocol": "http", "host": ["localhost"], "port": ["5000"], "path": ["api", "dashboard", "pending-alerts"]}
+          }
+        }
+      ]
+    }
+  ]
+}
