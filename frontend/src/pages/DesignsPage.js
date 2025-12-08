@@ -7,6 +7,14 @@ function DesignsPage({ user, onLogout }) {
   const [designs, setDesigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState('');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [formData, setFormData] = useState({
+    design_name: '',
+    designer_name: '',
+    estimated_stitches: '',
+    estimated_thread_usage: '',
+  });
+  const [uploadLoading, setUploadLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -48,6 +56,47 @@ function DesignsPage({ user, onLogout }) {
     }
   };
 
+  const handleCreateDesign = async (e) => {
+    e.preventDefault();
+    
+    if (!formData.design_name) {
+      alert('Design name is required');
+      return;
+    }
+
+    try {
+      setUploadLoading(true);
+
+      await designAPI.createDesign({
+        design_name: formData.design_name,
+        designer_name: formData.designer_name,
+        estimated_stitches: formData.estimated_stitches,
+        estimated_thread_usage: formData.estimated_thread_usage,
+      });
+      alert('Design created successfully!');
+      
+      setShowCreateModal(false);
+      setFormData({
+        design_name: '',
+        designer_name: '',
+        estimated_stitches: '',
+        estimated_thread_usage: '',
+      });
+
+      const designsRes = await designAPI.getAllDesigns({ status: selectedStatus });
+      setDesigns(designsRes.data.designs || []);
+    } catch (error) {
+      alert('Error creating design: ' + error.message);
+    } finally {
+      setUploadLoading(false);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
+
   if (loading) {
     return <div className="loading">Loading designs...</div>;
   }
@@ -59,6 +108,15 @@ function DesignsPage({ user, onLogout }) {
       <div className="page-container">
         <h1>Design Management & Approval</h1>
 
+        <div className="header-controls">
+          <button 
+            onClick={() => setShowCreateModal(true)} 
+            className="btn-primary btn-create"
+          >
+            + Add Design
+          </button>
+        </div>
+
         <div className="filter-section">
           <label>Filter by Status:</label>
           <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)}>
@@ -69,6 +127,85 @@ function DesignsPage({ user, onLogout }) {
             <option value="rejected">Rejected</option>
           </select>
         </div>
+
+        {showCreateModal && (
+          <div className="modal-overlay">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h2>Add New Design</h2>
+                <button 
+                  onClick={() => setShowCreateModal(false)} 
+                  className="btn-close"
+                >
+                  ✕
+                </button>
+              </div>
+              <form onSubmit={handleCreateDesign}>
+                <div className="form-group">
+                  <label>Design Name *</label>
+                  <input
+                    type="text"
+                    name="design_name"
+                    value={formData.design_name}
+                    onChange={handleInputChange}
+                    placeholder="Enter design name"
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Designer Name</label>
+                  <input
+                    type="text"
+                    name="designer_name"
+                    value={formData.designer_name}
+                    onChange={handleInputChange}
+                    placeholder="Designer name"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Estimated Stitches</label>
+                  <input
+                    type="number"
+                    name="estimated_stitches"
+                    value={formData.estimated_stitches}
+                    onChange={handleInputChange}
+                    placeholder="e.g., 5000"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Thread Usage</label>
+                  <input
+                    type="text"
+                    name="estimated_thread_usage"
+                    value={formData.estimated_thread_usage}
+                    onChange={handleInputChange}
+                    placeholder="e.g., Red: 50m, Blue: 30m"
+                  />
+                </div>
+
+                <div className="form-actions">
+                  <button 
+                    type="submit" 
+                    className="btn-success"
+                    disabled={uploadLoading}
+                  >
+                    {uploadLoading ? 'Creating...' : 'Create Design'}
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => setShowCreateModal(false)} 
+                    className="btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         <div className="designs-grid">
           {designs.map((design) => (

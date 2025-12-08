@@ -9,6 +9,8 @@ router.use(authMiddleware.authenticateToken);
 router.post('/', WorkOrderController.createWorkOrder);
 router.get('/', WorkOrderController.getAllWorkOrders);
 router.get('/:id', WorkOrderController.getWorkOrderById);
+router.patch('/:id', WorkOrderController.updateWorkOrder);
+router.delete('/:id', WorkOrderController.deleteWorkOrder);
 router.post('/:id/start', WorkOrderController.startWorkOrder);
 router.post('/:id/complete', WorkOrderController.completeWorkOrder);
 router.patch('/:id/status', WorkOrderController.updateWorkOrderStatus);

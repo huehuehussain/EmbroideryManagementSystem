@@ -129,6 +129,37 @@ class WorkOrderController {
       });
     }
   }
+
+  static async updateWorkOrder(req, res) {
+    try {
+      const { id } = req.params;
+      const workOrder = await WorkOrderService.updateWorkOrder(id, req.body, req.user.id);
+
+      res.status(CONSTANTS.HTTP_STATUS.OK).json({
+        message: 'Work order updated successfully',
+        workOrder,
+      });
+    } catch (error) {
+      res.status(CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
+        error: error.message,
+      });
+    }
+  }
+
+  static async deleteWorkOrder(req, res) {
+    try {
+      const { id } = req.params;
+      await WorkOrderService.deleteWorkOrder(id, req.user.id);
+
+      res.status(CONSTANTS.HTTP_STATUS.OK).json({
+        message: 'Work order deleted successfully',
+      });
+    } catch (error) {
+      res.status(CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
+        error: error.message,
+      });
+    }
+  }
 }
 
 module.exports = WorkOrderController;

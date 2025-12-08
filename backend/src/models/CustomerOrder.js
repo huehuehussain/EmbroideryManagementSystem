@@ -66,6 +66,14 @@ class CustomerOrder {
     );
     return result.rows[0];
   }
+
+  static async delete(id) {
+    const result = await pool.query(
+      `DELETE FROM customer_orders WHERE id = $1 RETURNING *`,
+      [id]
+    );
+    return result.rows[0];
+  }
 }
 
 module.exports = CustomerOrder;

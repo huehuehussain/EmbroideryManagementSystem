@@ -7,6 +7,7 @@ class WorkOrder {
               m.name as machine_name, 
               d.design_name,
               co.order_number,
+              co.customer_name,
               u.name as operator_name
        FROM work_orders wo
        LEFT JOIN machines m ON wo.machine_id = m.id
@@ -25,6 +26,7 @@ class WorkOrder {
               m.name as machine_name, 
               d.design_name,
               co.order_number,
+              co.customer_name,
               u.name as operator_name
        FROM work_orders wo
        LEFT JOIN machines m ON wo.machine_id = m.id
@@ -43,6 +45,7 @@ class WorkOrder {
               m.name as machine_name, 
               d.design_name,
               co.order_number,
+              co.customer_name,
               u.name as operator_name
        FROM work_orders wo
        LEFT JOIN machines m ON wo.machine_id = m.id
@@ -60,6 +63,8 @@ class WorkOrder {
       machine_id,
       design_id,
       customer_order_id,
+      customer_id,
+      customer_name,
       quantity_to_produce,
       thread_colors_required,
       thread_quantities,
@@ -68,9 +73,9 @@ class WorkOrder {
     } = workOrderData;
 
     const result = await pool.query(
-      `INSERT INTO work_orders (work_order_number, machine_id, design_id, customer_order_id, quantity_to_produce, thread_colors_required, thread_quantities, estimated_production_time, assigned_operator_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-      [work_order_number, machine_id, design_id, customer_order_id, quantity_to_produce, thread_colors_required, thread_quantities, estimated_production_time, assigned_operator_id]
+      `INSERT INTO work_orders (work_order_number, machine_id, design_id, customer_order_id, customer_id, customer_name, quantity_to_produce, thread_colors_required, thread_quantities, estimated_production_time, assigned_operator_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+      [work_order_number, machine_id, design_id, customer_order_id, customer_id, customer_name, quantity_to_produce, thread_colors_required, thread_quantities, estimated_production_time, assigned_operator_id]
     );
     return result.rows[0];
   }

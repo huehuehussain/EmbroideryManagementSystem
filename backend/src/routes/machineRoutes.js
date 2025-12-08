@@ -12,6 +12,7 @@ router.get('/:id', MachineController.getMachineById);
 
 router.post('/', authMiddleware.authorizeRole(CONSTANTS.ROLES.ADMIN, CONSTANTS.ROLES.MANAGER), MachineController.createMachine);
 router.patch('/:id', authMiddleware.authorizeRole(CONSTANTS.ROLES.ADMIN, CONSTANTS.ROLES.MANAGER), MachineController.updateMachine);
+router.delete('/:id', authMiddleware.authorizeRole(CONSTANTS.ROLES.ADMIN, CONSTANTS.ROLES.MANAGER), MachineController.deleteMachine);
 
 router.post('/:id/validate-colors', MachineController.validateThreadColors);
 router.post('/:id/validate-capacity', MachineController.validateCapacity);
