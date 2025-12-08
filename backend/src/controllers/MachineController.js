@@ -114,6 +114,29 @@ class MachineController {
       });
     }
   }
+
+  static async deleteMachine(req, res) {
+    try {
+      const { id } = req.params;
+      const machine = await Machine.findById(id);
+
+      if (!machine) {
+        return res.status(CONSTANTS.HTTP_STATUS.NOT_FOUND).json({
+          error: 'Machine not found',
+        });
+      }
+
+      await Machine.delete(id);
+
+      res.status(CONSTANTS.HTTP_STATUS.OK).json({
+        message: 'Machine deleted successfully',
+      });
+    } catch (error) {
+      res.status(CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
+        error: error.message,
+      });
+    }
+  }
 }
 
 module.exports = MachineController;

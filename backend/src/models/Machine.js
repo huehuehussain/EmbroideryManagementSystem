@@ -53,6 +53,14 @@ class Machine {
     if (!machine) return false;
     return estimatedStitches <= machine.capacity_stitches_per_hour;
   }
+
+  static async delete(id) {
+    const result = await pool.query(
+      `DELETE FROM machines WHERE id = $1 RETURNING *`,
+      [id]
+    );
+    return result.rows[0];
+  }
 }
 
 module.exports = Machine;

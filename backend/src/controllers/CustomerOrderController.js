@@ -104,6 +104,29 @@ class CustomerOrderController {
       });
     }
   }
+
+  static async deleteOrder(req, res) {
+    try {
+      const { id } = req.params;
+      const order = await CustomerOrder.findById(id);
+
+      if (!order) {
+        return res.status(CONSTANTS.HTTP_STATUS.NOT_FOUND).json({
+          error: 'Customer order not found',
+        });
+      }
+
+      await CustomerOrder.delete(id);
+
+      res.status(CONSTANTS.HTTP_STATUS.OK).json({
+        message: 'Customer order deleted successfully',
+      });
+    } catch (error) {
+      res.status(CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
+        error: error.message,
+      });
+    }
+  }
 }
 
 module.exports = CustomerOrderController;

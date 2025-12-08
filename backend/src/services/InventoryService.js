@@ -1,72 +1,125 @@
-const InventoryItem = require('../models/InventoryItem');
-const Alert = require('../models/Alert');
+const pool = require('../config/database');
 const CONSTANTS = require('../utils/constants');
 
 class InventoryService {
+  /**
+   * Get all inventory items
+   */
   static async getAllInventoryItems() {
-    return await InventoryItem.getAll();
+    const result = await pool.query(
+      `SELECT * FROM inventory_items ORDER BY item_name ASC`
+    );
+    return result.rows;
   }
 
+  /**
+   * Get inventory item by ID
+   */
   static async getInventoryItemById(id) {
-    return await InventoryItem.findById(id);
+    const result = await pool.query(
+      `SELECT * FROM inventory_items WHERE id = $1`,
+      [id]
+    );
+    return result.rows[0] || null;
   }
 
+  /**
+   * Create inventory item
+   */
   static async createInventoryItem(itemData) {
-    return await InventoryItem.create(itemData);
+    const {
+      item_name,
+      item_type,
+      description,
+      quantity_available,
+      minimum_stock_level,
+      unit_cost,
+      supplier,
+      reorder_quantity,
+      unit_measurement,
+    } = itemData;
+
+    const result = await pool.query(
+      `INSERT INTO inventory_items (
+        item_name, item_type, description, quantity_available,
+        minimum_stock_level, unit_cost, supplier, reorder_quantity,
+        unit_measurement
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      RETURNING *`,
+      [
+        item_name,
+        item_type,
+        description,
+        quantity_available,
+        minimum_stock_level,
+        unit_cost,
+        supplier,
+        reorder_quantity,
+        unit_measurement,
+      ]
+    );
+
+    return result.rows[0];
   }
 
+  /**
+   * Update inventory item
+   */
   static async updateInventoryItem(id, itemData) {
-    const updated = await InventoryItem.update(id, itemData);
+    const { quantity_available, minimum_stock_level, unit_cost, supplier } = itemData;
 
-    // Check if stock is now low
-    if (itemData.quantity_available !== undefined) {
-      const item = await InventoryItem.findById(id);
-      if (item.quantity_available <= item.minimum_stock_level) {
-        await Alert.create({
-          alert_type: CONSTANTS.ALERT_TYPES.LOW_INVENTORY,
-          entity_type: 'inventory_item',
-          entity_id: id,
-          title: `Low Inventory Alert: ${item.item_name}`,
-          message: `Item "${item.item_name}" stock is below minimum level.`,
-        });
-      }
-    }
+    const result = await pool.query(
+      `UPDATE inventory_items 
+       SET quantity_available = COALESCE($1, quantity_available),
+           minimum_stock_level = COALESCE($2, minimum_stock_level),
+           unit_cost = COALESCE($3, unit_cost),
+           supplier = COALESCE($4, supplier)
+       WHERE id = $5
+       RETURNING *`,
+      [quantity_available, minimum_stock_level, unit_cost, supplier, id]
+    );
 
-    return updated;
+    return result.rows[0] || null;
   }
 
+  /**
+   * Deduct inventory item - calls database function fn_deduct_inventory_item
+   * Database handles: validation, deduction, alert creation
+   */
   static async deductInventoryItem(id, quantity, userId = null) {
-    const item = await InventoryItem.findById(id);
+    try {
+      const result = await pool.query(
+        `SELECT * FROM fn_deduct_inventory_item($1, $2)`,
+        [id, quantity]
+      );
 
-    if (!item) {
-      throw new Error('Inventory item not found');
+      const { success, message } = result.rows[0];
+
+      if (!success) {
+        throw new Error(message);
+      }
+
+      return await this.getInventoryItemById(id);
+    } catch (error) {
+      throw new Error(error.message);
     }
-
-    const available = parseFloat(item.quantity_available);
-    if (available < quantity) {
-      throw new Error(`${CONSTANTS.ERRORS.INSUFFICIENT_INVENTORY}: ${item.item_name}`);
-    }
-
-    const updated = await InventoryItem.deductStock(id, quantity);
-
-    // Check if stock is now below minimum
-    if (updated.quantity_available <= updated.minimum_stock_level) {
-      await Alert.create({
-        alert_type: CONSTANTS.ALERT_TYPES.REORDER,
-        entity_type: 'inventory_item',
-        entity_id: id,
-        title: `Reorder Alert: ${item.item_name}`,
-        message: `Item "${item.item_name}" stock is below minimum level.`,
-      });
-    }
-
-    return updated;
   }
 
+  /**
+   * Get low stock items
+   */
   static async getLowStockItems() {
-    return await InventoryItem.getLowStockItems();
+    const result = await pool.query(
+      `SELECT * FROM inventory_items 
+       WHERE quantity_available <= minimum_stock_level
+       ORDER BY quantity_available ASC`
+    );
+    return result.rows;
   }
 
+  /**
+   * Bulk deduct inventory
+   */
   static async bulkDeductInventory(itemIds, quantities) {
     const results = [];
 

@@ -11,5 +11,6 @@ router.get('/:id', CustomerOrderController.getOrderById);
 router.post('/', CustomerOrderController.createOrder);
 router.patch('/:id', CustomerOrderController.updateOrder);
 router.patch('/:id/status', CustomerOrderController.updateOrderStatus);
+router.delete('/:id', CustomerOrderController.deleteOrder);
 
 module.exports = router;

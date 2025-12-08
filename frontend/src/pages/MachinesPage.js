@@ -6,6 +6,20 @@ import '../styles/MachinesPage.css';
 function MachinesPage({ user, onLogout }) {
   const [machines, setMachines] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createLoading, setCreateLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    model: '',
+    capacity_stitches_per_hour: '',
+    supported_thread_colors: [],
+    location: '',
+  });
+
+  const availableColors = [
+    'all', 'red', 'blue', 'black', 'white', 'green', 'yellow', 'orange', 'purple',
+    'pink', 'brown', 'gray', 'navy', 'gold', 'silver', 'cyan'
+  ];
 
   useEffect(() => {
     const fetchData = async () => {
@@ -22,6 +36,66 @@ function MachinesPage({ user, onLogout }) {
     fetchData();
   }, []);
 
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
+
+  const handleColorToggle = (color) => {
+    setFormData(prev => {
+      const colors = prev.supported_thread_colors;
+      if (colors.includes(color)) {
+        return {
+          ...prev,
+          supported_thread_colors: colors.filter(c => c !== color)
+        };
+      } else {
+        return {
+          ...prev,
+          supported_thread_colors: [...colors, color]
+        };
+      }
+    });
+  };
+
+  const handleCreateMachine = async (e) => {
+    e.preventDefault();
+
+    if (!formData.name || !formData.model || !formData.capacity_stitches_per_hour) {
+      alert('Name, model, and capacity are required');
+      return;
+    }
+
+    try {
+      setCreateLoading(true);
+      
+      await machineAPI.createMachine({
+        name: formData.name,
+        model: formData.model,
+        capacity_stitches_per_hour: parseInt(formData.capacity_stitches_per_hour),
+        supported_thread_colors: formData.supported_thread_colors,
+        location: formData.location,
+      });
+
+      alert('Machine created successfully!');
+      setShowCreateModal(false);
+      setFormData({
+        name: '',
+        model: '',
+        capacity_stitches_per_hour: '',
+        supported_thread_colors: [],
+        location: '',
+      });
+
+      const machinesRes = await machineAPI.getAllMachines();
+      setMachines(machinesRes.data.machines || []);
+    } catch (error) {
+      alert('Error creating machine: ' + error.message);
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
   if (loading) {
     return <div className="loading">Loading machines...</div>;
   }
@@ -32,6 +106,117 @@ function MachinesPage({ user, onLogout }) {
 
       <div className="page-container">
         <h1>Machines Management</h1>
+
+        <div className="header-controls">
+          <button 
+            onClick={() => setShowCreateModal(true)} 
+            className="btn-primary btn-create"
+          >
+            + Add Machine
+          </button>
+        </div>
+
+        {showCreateModal && (
+          <div className="modal-overlay">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h2>Add New Machine</h2>
+                <button 
+                  onClick={() => setShowCreateModal(false)} 
+                  className="btn-close"
+                >
+                  ✕
+                </button>
+              </div>
+              <form onSubmit={handleCreateMachine}>
+                <div className="form-group">
+                  <label>Machine Name *</label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    placeholder="e.g., Brother PR1050X"
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Model *</label>
+                  <input
+                    type="text"
+                    name="model"
+                    value={formData.model}
+                    onChange={handleInputChange}
+                    placeholder="e.g., PR1050X"
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Capacity (stitches/hour) *</label>
+                  <input
+                    type="number"
+                    name="capacity_stitches_per_hour"
+                    value={formData.capacity_stitches_per_hour}
+                    onChange={handleInputChange}
+                    placeholder="e.g., 5000"
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Supported Thread Colors</label>
+                  <div className="color-selector">
+                    {availableColors.map((color) => (
+                      <label key={color} className="color-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={formData.supported_thread_colors.includes(color)}
+                          onChange={() => handleColorToggle(color)}
+                        />
+                        <span className="color-label">{color}</span>
+                        <span 
+                          className="color-preview" 
+                          style={{ backgroundColor: color }}
+                        ></span>
+                      </label>
+                    ))}
+                  </div>
+                  <small>{formData.supported_thread_colors.length} color(s) selected</small>
+                </div>
+
+                <div className="form-group">
+                  <label>Location</label>
+                  <input
+                    type="text"
+                    name="location"
+                    value={formData.location}
+                    onChange={handleInputChange}
+                    placeholder="e.g., Floor 1, Section A"
+                  />
+                </div>
+
+                <div className="form-actions">
+                  <button 
+                    type="submit" 
+                    className="btn-success"
+                    disabled={createLoading}
+                  >
+                    {createLoading ? 'Creating...' : 'Create Machine'}
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => setShowCreateModal(false)} 
+                    className="btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         <div className="machines-grid">
           {machines.map((machine) => (

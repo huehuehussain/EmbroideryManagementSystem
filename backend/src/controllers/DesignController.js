@@ -40,22 +40,18 @@ class DesignController {
     }
   }
 
-  static async uploadDesign(req, res) {
+  static async createDesign(req, res) {
     try {
       const { design_name, designer_name, estimated_stitches, estimated_thread_usage } = req.body;
-      const file = req.file;
 
-      if (!design_name || !file) {
+      if (!design_name) {
         return res.status(CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
-          error: 'Design name and file are required',
+          error: 'Design name is required',
         });
       }
 
       const designData = {
         design_name,
-        design_file_path: `/uploads/${file.filename}`,
-        file_size: file.size,
-        file_type: file.mimetype,
         designer_name,
         estimated_stitches,
         estimated_thread_usage,
@@ -64,7 +60,7 @@ class DesignController {
       const design = await Design.create(designData);
 
       res.status(CONSTANTS.HTTP_STATUS.CREATED).json({
-        message: 'Design uploaded successfully',
+        message: 'Design created successfully',
         design,
       });
     } catch (error) {
@@ -122,6 +118,66 @@ class DesignController {
       res.status(CONSTANTS.HTTP_STATUS.OK).json({
         message: 'Design marked as reviewed',
         design,
+      });
+    } catch (error) {
+      res.status(CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
+        error: error.message,
+      });
+    }
+  }
+
+  static async updateDesign(req, res) {
+    try {
+      const { id } = req.params;
+      const { design_name, designer_name, estimated_stitches, estimated_thread_usage } = req.body;
+
+      if (!design_name) {
+        return res.status(CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
+          error: 'Design name is required',
+        });
+      }
+
+      const design = await Design.update(id, {
+        design_name,
+        designer_name,
+        estimated_stitches,
+        estimated_thread_usage,
+      });
+
+      res.status(CONSTANTS.HTTP_STATUS.OK).json({
+        message: 'Design updated successfully',
+        design,
+      });
+    } catch (error) {
+      res.status(CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
+        error: error.message,
+      });
+    }
+  }
+
+  static async deleteDesign(req, res) {
+    try {
+      const { id } = req.params;
+      const design = await Design.findById(id);
+
+      if (!design) {
+        return res.status(CONSTANTS.HTTP_STATUS.NOT_FOUND).json({
+          error: 'Design not found',
+        });
+      }
+
+      // Delete file if exists
+      if (design.design_file_path) {
+        const filePath = path.join(__dirname, '../../', design.design_file_path);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      }
+
+      await Design.delete(id);
+
+      res.status(CONSTANTS.HTTP_STATUS.OK).json({
+        message: 'Design deleted successfully',
       });
     } catch (error) {
       res.status(CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({

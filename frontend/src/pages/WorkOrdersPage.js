@@ -210,6 +210,7 @@ function WorkOrdersPage({ user, onLogout }) {
             <thead>
               <tr>
                 <th>WO #</th>
+                <th>Customer</th>
                 <th>Machine</th>
                 <th>Design</th>
                 <th>Status</th>
@@ -222,6 +223,7 @@ function WorkOrdersPage({ user, onLogout }) {
               {workOrders.map((wo) => (
                 <tr key={wo.id}>
                   <td>{wo.work_order_number}</td>
+                  <td>{wo.customer_name || 'N/A'}</td>
                   <td>{wo.machine_name}</td>
                   <td>{wo.design_name}</td>
                   <td className={`status status-${wo.status}`}>{wo.status}</td>
