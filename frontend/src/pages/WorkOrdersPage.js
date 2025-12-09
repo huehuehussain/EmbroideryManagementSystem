@@ -13,6 +13,7 @@ function WorkOrdersPage({ user, onLogout }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
     work_order_number: '',
     machine_id: '',
@@ -57,9 +58,23 @@ function WorkOrdersPage({ user, onLogout }) {
     e.preventDefault();
 
     try {
-      await workOrderAPI.createWorkOrder(formData);
-      alert('Work order created successfully!');
+      const dataToSend = {
+        work_order_number: formData.work_order_number,
+        machine_id: parseInt(formData.machine_id),
+        design_id: parseInt(formData.design_id),
+        customer_order_id: parseInt(formData.customer_order_id),
+        quantity_to_produce: parseInt(formData.quantity_to_produce),
+      };
+
+      if (editingId) {
+        await workOrderAPI.updateWorkOrderStatus(editingId, formData.status);
+        alert('Work order updated successfully!');
+      } else {
+        await workOrderAPI.createWorkOrder(dataToSend);
+        alert('Work order created successfully!');
+      }
       setShowForm(false);
+      setEditingId(null);
       setFormData({
         work_order_number: '',
         machine_id: '',
@@ -71,8 +86,35 @@ function WorkOrdersPage({ user, onLogout }) {
       const woRes = await workOrderAPI.getAllWorkOrders();
       setWorkOrders(woRes.data.workOrders || []);
     } catch (error) {
-      alert('Error creating work order: ' + (error.response?.data?.error || error.message));
+      alert('Error saving work order: ' + (error.response?.data?.error || error.message));
     }
+  };
+
+  const handleDeleteWorkOrder = async (id) => {
+    if (window.confirm('Are you sure you want to delete this work order?')) {
+      try {
+        await workOrderAPI.deleteWorkOrder(id);
+        alert('Work order deleted successfully!');
+        const woRes = await workOrderAPI.getAllWorkOrders();
+        setWorkOrders(woRes.data.workOrders || []);
+      } catch (error) {
+        alert('Error deleting work order: ' + error.message);
+      }
+    }
+  };
+
+  const handleCancel = () => {
+    setShowForm(false);
+    setEditingId(null);
+    setFormData({
+      work_order_number: '',
+      machine_id: '',
+      design_id: '',
+      customer_order_id: '',
+      quantity_to_produce: '',
+      thread_colors_required: [],
+      thread_quantities: [],
+    });
   };
 
   const handleStartWorkOrder = async (id) => {
@@ -90,12 +132,14 @@ function WorkOrdersPage({ user, onLogout }) {
     const quantity = prompt('Enter quantity completed:');
     if (quantity) {
       try {
-        await workOrderAPI.completeWorkOrder(id, quantity);
+        await workOrderAPI.completeWorkOrder(id, parseInt(quantity));
         alert('Work order completed!');
         const woRes = await workOrderAPI.getAllWorkOrders();
         setWorkOrders(woRes.data.workOrders || []);
       } catch (error) {
-        alert('Error completing work order: ' + error.message);
+        const serverMsg = error.response && error.response.data && error.response.data.error;
+        console.error('Complete work order error', error.response || error.message);
+        alert('Error completing work order: ' + (serverMsg || error.message));
       }
     }
   };
@@ -111,13 +155,19 @@ function WorkOrdersPage({ user, onLogout }) {
       <div className="page-container">
         <h1>Work Orders Management</h1>
 
-        <button onClick={() => setShowForm(!showForm)} className="btn-primary">
+        <button onClick={() => {
+          if (editingId) {
+            handleCancel();
+          } else {
+            setShowForm(!showForm);
+          }
+        }} className="btn-primary">
           {showForm ? 'Cancel' : 'Create Work Order'}
         </button>
 
         {showForm && (
           <form onSubmit={handleCreateWorkOrder} className="form-container">
-            <h2>Create New Work Order</h2>
+            <h2>{editingId ? 'Edit Work Order' : 'Create New Work Order'}</h2>
 
             <div className="form-group">
               <label>Work Order Number</label>
@@ -199,7 +249,7 @@ function WorkOrdersPage({ user, onLogout }) {
             </div>
 
             <button type="submit" className="btn-success">
-              Create Work Order
+              {editingId ? 'Update Work Order' : 'Create Work Order'}
             </button>
           </form>
         )}
@@ -246,6 +296,12 @@ function WorkOrdersPage({ user, onLogout }) {
                         Complete
                       </button>
                     )}
+                    <button
+                      onClick={() => handleDeleteWorkOrder(wo.id)}
+                      className="btn-small btn-delete"
+                    >
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))}

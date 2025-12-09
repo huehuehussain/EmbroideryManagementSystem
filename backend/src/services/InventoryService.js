@@ -66,17 +66,48 @@ class InventoryService {
    * Update inventory item
    */
   static async updateInventoryItem(id, itemData) {
-    const { quantity_available, minimum_stock_level, unit_cost, supplier } = itemData;
+    const fields = [];
+    const values = [];
+    let paramCount = 1;
+
+    // Dynamically build the UPDATE query based on provided fields
+    const allowedFields = ['item_name', 'item_type', 'quantity_available', 'minimum_stock_level', 'unit_cost', 'supplier'];
+    
+    allowedFields.forEach((field) => {
+      if (itemData[field] !== undefined && itemData[field] !== null) {
+        fields.push(`${field} = $${paramCount++}`);
+        values.push(itemData[field]);
+      }
+    });
+
+    if (fields.length === 0) {
+      throw new Error('No fields to update');
+    }
+
+    values.push(id);
 
     const result = await pool.query(
       `UPDATE inventory_items 
-       SET quantity_available = COALESCE($1, quantity_available),
-           minimum_stock_level = COALESCE($2, minimum_stock_level),
-           unit_cost = COALESCE($3, unit_cost),
-           supplier = COALESCE($4, supplier)
-       WHERE id = $5
+       SET ${fields.join(', ')}
+       WHERE id = $${paramCount}
        RETURNING *`,
-      [quantity_available, minimum_stock_level, unit_cost, supplier, id]
+      values
+    );
+
+    if (!result.rows[0]) {
+      throw new Error('Inventory item not found');
+    }
+
+    return result.rows[0];
+  }
+
+  /**
+   * Delete inventory item
+   */
+  static async deleteInventoryItem(id) {
+    const result = await pool.query(
+      `DELETE FROM inventory_items WHERE id = $1 RETURNING *`,
+      [id]
     );
 
     return result.rows[0] || null;
@@ -133,6 +164,33 @@ class InventoryService {
     }
 
     return results;
+  }
+
+  /**
+   * Restock inventory item - adds quantity to current stock
+   */
+  static async restockInventoryItem(id, quantity) {
+    if (!quantity || quantity <= 0) {
+      throw new Error('Restock quantity must be greater than 0');
+    }
+
+    try {
+      const result = await pool.query(
+        `UPDATE inventory_items 
+         SET quantity_available = quantity_available + $1
+         WHERE id = $2
+         RETURNING *`,
+        [quantity, id]
+      );
+
+      if (result.rows.length === 0) {
+        throw new Error('Inventory item not found');
+      }
+
+      return result.rows[0];
+    } catch (error) {
+      throw new Error(error.message);
+    }
   }
 }
 

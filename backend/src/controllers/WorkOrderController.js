@@ -69,11 +69,20 @@ class WorkOrderController {
   static async completeWorkOrder(req, res) {
     try {
       const { id } = req.params;
-      const { quantity_completed } = req.body;
+      let { quantity_completed } = req.body;
 
       if (!quantity_completed) {
         return res.status(CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
           error: 'Quantity completed is required',
+        });
+      }
+
+      // Convert to number if it's a string
+      quantity_completed = parseInt(quantity_completed);
+
+      if (isNaN(quantity_completed) || quantity_completed <= 0) {
+        return res.status(CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
+          error: 'Quantity completed must be a positive number',
         });
       }
 

@@ -478,9 +478,26 @@ RETURNS TABLE(success BOOLEAN, message TEXT) AS $$
 BEGIN
   DECLARE
     v_current_status work_order_status;
+    v_design_id INT;
+    v_quantity_to_produce INT;
+    v_inventory_item_id INT;
+    v_quantity_required DECIMAL(10, 2);
+    v_total_deduct DECIMAL(10, 2);
+    v_current_stock DECIMAL(10, 2);
+    v_item_record RECORD;
+    v_item_count INT := 0;
   BEGIN
-    -- Get current status
-    SELECT status INTO v_current_status FROM work_orders WHERE id = p_work_order_id;
+    -- Validate input
+    IF p_quantity_completed IS NULL OR p_quantity_completed <= 0 THEN
+      RETURN QUERY SELECT false, 'Quantity completed must be a positive number'::TEXT;
+      RETURN;
+    END IF;
+
+    -- Get current status and design_id
+    SELECT status, design_id, quantity_to_produce 
+    INTO v_current_status, v_design_id, v_quantity_to_produce
+    FROM work_orders 
+    WHERE id = p_work_order_id;
     
     IF v_current_status IS NULL THEN
       RETURN QUERY SELECT false, 'Work order not found'::TEXT;
@@ -488,8 +505,53 @@ BEGIN
     END IF;
     
     IF v_current_status != 'in_progress' THEN
-      RETURN QUERY SELECT false, 'Work order must be in progress to complete'::TEXT;
+      RETURN QUERY SELECT false, 'Work order must be in progress to complete (current status: ' || v_current_status || ')'::TEXT;
       RETURN;
+    END IF;
+
+    -- If design_id exists, deduct inventory based on design inventory items
+    IF v_design_id IS NOT NULL THEN
+      FOR v_item_record IN
+        SELECT dii.inventory_item_id, dii.quantity_required
+        FROM design_inventory_items dii
+        WHERE dii.design_id = v_design_id
+      LOOP
+        v_item_count := v_item_count + 1;
+        v_inventory_item_id := v_item_record.inventory_item_id;
+        v_quantity_required := v_item_record.quantity_required;
+        
+        -- Calculate total quantity to deduct: quantity_required × quantity_completed
+        v_total_deduct := v_quantity_required * p_quantity_completed;
+        
+        -- Get current stock
+        SELECT quantity_available INTO v_current_stock
+        FROM inventory_items
+        WHERE id = v_inventory_item_id;
+        
+        -- Check if sufficient inventory exists
+        IF v_current_stock < v_total_deduct THEN
+          RETURN QUERY SELECT false, 'Insufficient inventory for item ID ' || v_inventory_item_id::TEXT || ' (required: ' || v_total_deduct::TEXT || ', available: ' || v_current_stock::TEXT || ')'::TEXT;
+          RETURN;
+        END IF;
+        
+        -- Deduct inventory
+        UPDATE inventory_items
+        SET quantity_available = quantity_available - v_total_deduct
+        WHERE id = v_inventory_item_id;
+        
+        -- Create alert if stock falls below minimum
+        IF (SELECT quantity_available FROM inventory_items WHERE id = v_inventory_item_id) 
+           <= (SELECT minimum_stock_level FROM inventory_items WHERE id = v_inventory_item_id) THEN
+          INSERT INTO alerts (alert_type, entity_type, entity_id, title, message)
+          VALUES (
+            'low_inventory'::alert_type,
+            'inventory_item',
+            v_inventory_item_id,
+            'Low stock alert for item after work order completion',
+            'Inventory item ' || v_inventory_item_id || ' has fallen below minimum level.'
+          );
+        END IF;
+      END LOOP;
     END IF;
     
     -- Update status, quantity, and actual_end_time
@@ -500,7 +562,11 @@ BEGIN
       actual_end_time = CURRENT_TIMESTAMP
     WHERE id = p_work_order_id;
     
-    RETURN QUERY SELECT true, 'Work order completed successfully'::TEXT;
+    IF v_item_count > 0 THEN
+      RETURN QUERY SELECT true, 'Work order completed successfully and inventory deducted (' || v_item_count::TEXT || ' items)'::TEXT;
+    ELSE
+      RETURN QUERY SELECT true, 'Work order completed successfully (no design inventory to deduct)'::TEXT;
+    END IF;
   END;
 END;
 $$ LANGUAGE plpgsql;

@@ -26,13 +26,14 @@ class CustomerOrder {
       required_delivery_date,
       total_quantity,
       total_price,
+      design_id,
       notes,
     } = orderData;
 
     const result = await pool.query(
-      `INSERT INTO customer_orders (order_number, customer_name, customer_email, customer_phone, delivery_address, required_delivery_date, total_quantity, total_price, notes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-      [order_number, customer_name, customer_email, customer_phone, delivery_address, required_delivery_date, total_quantity, total_price, notes]
+      `INSERT INTO customer_orders (order_number, customer_name, customer_email, customer_phone, delivery_address, required_delivery_date, total_quantity, total_price, design_id, notes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+      [order_number, customer_name, customer_email, customer_phone, delivery_address, required_delivery_date, total_quantity, total_price, design_id, notes]
     );
     return result.rows[0];
   }
@@ -70,6 +71,25 @@ class CustomerOrder {
   static async delete(id) {
     const result = await pool.query(
       `DELETE FROM customer_orders WHERE id = $1 RETURNING *`,
+      [id]
+    );
+    return result.rows[0];
+  }
+
+  static async calculateOrderCost(designId, quantity) {
+    const result = await pool.query(
+      `SELECT * FROM fn_calculate_order_cost($1, $2)`,
+      [designId, quantity]
+    );
+    return result.rows[0];
+  }
+
+  static async findByIdWithDesign(id) {
+    const result = await pool.query(
+      `SELECT co.*, d.design_name, d.id as design_id
+       FROM customer_orders co
+       LEFT JOIN designs d ON co.design_id = d.id
+       WHERE co.id = $1`,
       [id]
     );
     return result.rows[0];

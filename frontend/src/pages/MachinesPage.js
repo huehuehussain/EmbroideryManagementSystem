@@ -8,6 +8,7 @@ function MachinesPage({ user, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     model: '',
@@ -69,16 +70,28 @@ function MachinesPage({ user, onLogout }) {
     try {
       setCreateLoading(true);
       
-      await machineAPI.createMachine({
-        name: formData.name,
-        model: formData.model,
-        capacity_stitches_per_hour: parseInt(formData.capacity_stitches_per_hour),
-        supported_thread_colors: formData.supported_thread_colors,
-        location: formData.location,
-      });
+      if (editingId) {
+        await machineAPI.updateMachine(editingId, {
+          name: formData.name,
+          model: formData.model,
+          capacity_stitches_per_hour: parseInt(formData.capacity_stitches_per_hour),
+          supported_thread_colors: formData.supported_thread_colors,
+          location: formData.location,
+        });
+        alert('Machine updated successfully!');
+      } else {
+        await machineAPI.createMachine({
+          name: formData.name,
+          model: formData.model,
+          capacity_stitches_per_hour: parseInt(formData.capacity_stitches_per_hour),
+          supported_thread_colors: formData.supported_thread_colors,
+          location: formData.location,
+        });
+        alert('Machine created successfully!');
+      }
 
-      alert('Machine created successfully!');
       setShowCreateModal(false);
+      setEditingId(null);
       setFormData({
         name: '',
         model: '',
@@ -90,9 +103,34 @@ function MachinesPage({ user, onLogout }) {
       const machinesRes = await machineAPI.getAllMachines();
       setMachines(machinesRes.data.machines || []);
     } catch (error) {
-      alert('Error creating machine: ' + error.message);
+      alert('Error saving machine: ' + error.message);
     } finally {
       setCreateLoading(false);
+    }
+  };
+
+  const handleEditMachine = (machine) => {
+    setEditingId(machine.id);
+    setFormData({
+      name: machine.name,
+      model: machine.model,
+      capacity_stitches_per_hour: machine.capacity_stitches_per_hour,
+      supported_thread_colors: machine.supported_thread_colors || [],
+      location: machine.location,
+    });
+    setShowCreateModal(true);
+  };
+
+  const handleDeleteMachine = async (id) => {
+    if (window.confirm('Are you sure you want to delete this machine?')) {
+      try {
+        await machineAPI.deleteMachine(id);
+        alert('Machine deleted successfully!');
+        const machinesRes = await machineAPI.getAllMachines();
+        setMachines(machinesRes.data.machines || []);
+      } catch (error) {
+        alert('Error deleting machine: ' + error.message);
+      }
     }
   };
 
@@ -109,7 +147,17 @@ function MachinesPage({ user, onLogout }) {
 
         <div className="header-controls">
           <button 
-            onClick={() => setShowCreateModal(true)} 
+            onClick={() => {
+              setEditingId(null);
+              setFormData({
+                name: '',
+                model: '',
+                capacity_stitches_per_hour: '',
+                supported_thread_colors: [],
+                location: '',
+              });
+              setShowCreateModal(true);
+            }} 
             className="btn-primary btn-create"
           >
             + Add Machine
@@ -120,9 +168,19 @@ function MachinesPage({ user, onLogout }) {
           <div className="modal-overlay">
             <div className="modal-content">
               <div className="modal-header">
-                <h2>Add New Machine</h2>
+                <h2>{editingId ? 'Edit Machine' : 'Add New Machine'}</h2>
                 <button 
-                  onClick={() => setShowCreateModal(false)} 
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    setEditingId(null);
+                    setFormData({
+                      name: '',
+                      model: '',
+                      capacity_stitches_per_hour: '',
+                      supported_thread_colors: [],
+                      location: '',
+                    });
+                  }} 
                   className="btn-close"
                 >
                   ✕
@@ -203,11 +261,21 @@ function MachinesPage({ user, onLogout }) {
                     className="btn-success"
                     disabled={createLoading}
                   >
-                    {createLoading ? 'Creating...' : 'Create Machine'}
+                    {createLoading ? 'Saving...' : (editingId ? 'Update Machine' : 'Create Machine')}
                   </button>
                   <button 
                     type="button" 
-                    onClick={() => setShowCreateModal(false)} 
+                    onClick={() => {
+                      setShowCreateModal(false);
+                      setEditingId(null);
+                      setFormData({
+                        name: '',
+                        model: '',
+                        capacity_stitches_per_hour: '',
+                        supported_thread_colors: [],
+                        location: '',
+                      });
+                    }} 
                     className="btn-secondary"
                   >
                     Cancel
@@ -232,6 +300,10 @@ function MachinesPage({ user, onLogout }) {
                     <span key={idx} className="color-badge">{color}</span>
                   ))}
                 </div>
+              </div>
+              <div className="actions" style={{ marginTop: '10px' }}>
+                <button onClick={() => handleEditMachine(machine)} className="btn-small btn-edit">Edit</button>
+                <button onClick={() => handleDeleteMachine(machine.id)} className="btn-small btn-delete">Delete</button>
               </div>
             </div>
           ))}

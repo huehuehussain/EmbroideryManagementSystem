@@ -9,6 +9,7 @@ const workOrderAPI = {
     axiosInstance.post(`/api/work-orders/${id}/complete`, { quantity_completed: quantity }),
   updateWorkOrderStatus: (id, status) =>
     axiosInstance.patch(`/api/work-orders/${id}/status`, { status }),
+  deleteWorkOrder: (id) => axiosInstance.delete(`/api/work-orders/${id}`),
   calculateCost: (id) => axiosInstance.post(`/api/work-orders/${id}/calculate-cost`),
 };
 

@@ -82,6 +82,37 @@ body {
   background-color: #28a745;
 }
 
+.btn-edit {
+  background-color: #ffc107;
+  color: #333;
+}
+
+.btn-edit:hover {
+  background-color: #e0a800;
+}
+
+.btn-delete {
+  background-color: #dc3545;
+  color: white;
+}
+
+.btn-delete:hover {
+  background-color: #c82333;
+}
+
+.btn-restock {
+  background-color: #28a745;
+  color: white;
+}
+
+.btn-restock:hover {
+  background-color: #218838;
+}
+
+.btn-small:hover {
+  opacity: 0.85;
+}
+
 /* Tables */
 table {
   width: 100%;
@@ -100,6 +131,13 @@ th {
 td {
   padding: 12px;
   border-bottom: 1px solid #dee2e6;
+}
+
+/* Specific column widths for inventory table */
+.table-container table td:nth-child(7),
+.table-container table th:nth-child(7) {
+  width: 250px;
+  min-width: 250px;
 }
 
 tr:hover {
@@ -173,3 +211,45 @@ tr:hover {
   background-color: #28a745;
   color: white;
 }
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: white;
+  border-radius: 8px;
+  padding: 30px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  max-width: 500px;
+  width: 90%;
+}
+
+.modal-content h2 {
+  color: #333;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  justify-content: center;
+}
+
+.modal-actions button {
+  flex: 1;
+  max-width: 200px;
+}
+

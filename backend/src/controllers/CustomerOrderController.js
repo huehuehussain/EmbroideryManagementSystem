@@ -40,6 +40,7 @@ class CustomerOrderController {
   static async createOrder(req, res) {
     try {
       const orderData = req.body;
+      const { design_id, total_quantity } = orderData;
 
       if (!orderData.order_number || !orderData.customer_name) {
         return res.status(CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
@@ -50,6 +51,14 @@ class CustomerOrderController {
       // Generate unique order number if not provided
       if (!orderData.order_number) {
         orderData.order_number = `ORD-${Date.now()}`;
+      }
+
+      // If design_id and total_quantity are provided, calculate the cost
+      if (design_id && total_quantity) {
+        const costBreakdown = await CustomerOrder.calculateOrderCost(design_id, total_quantity);
+        if (costBreakdown) {
+          orderData.total_price = costBreakdown.total_cost;
+        }
       }
 
       const order = await CustomerOrder.create(orderData);
@@ -68,7 +77,18 @@ class CustomerOrderController {
   static async updateOrder(req, res) {
     try {
       const { id } = req.params;
-      const order = await CustomerOrder.update(id, req.body);
+      const orderData = req.body;
+      const { design_id, total_quantity } = orderData;
+
+      // If design_id or total_quantity is being updated, recalculate the cost
+      if (design_id && total_quantity) {
+        const costBreakdown = await CustomerOrder.calculateOrderCost(design_id, total_quantity);
+        if (costBreakdown) {
+          orderData.total_price = costBreakdown.total_cost;
+        }
+      }
+
+      const order = await CustomerOrder.update(id, orderData);
 
       res.status(CONSTANTS.HTTP_STATUS.OK).json({
         message: 'Customer order updated successfully',
@@ -120,6 +140,35 @@ class CustomerOrderController {
 
       res.status(CONSTANTS.HTTP_STATUS.OK).json({
         message: 'Customer order deleted successfully',
+      });
+    } catch (error) {
+      res.status(CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
+        error: error.message,
+      });
+    }
+  }
+
+  static async calculateOrderCost(req, res) {
+    try {
+      const { design_id, quantity } = req.body;
+
+      if (!design_id || !quantity) {
+        return res.status(CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
+          error: 'Design ID and quantity are required',
+        });
+      }
+
+      const costBreakdown = await CustomerOrder.calculateOrderCost(design_id, quantity);
+
+      if (!costBreakdown) {
+        return res.status(CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
+          error: 'Unable to calculate cost for this design',
+        });
+      }
+
+      res.status(CONSTANTS.HTTP_STATUS.OK).json({
+        message: 'Cost calculated successfully',
+        cost_breakdown: costBreakdown,
       });
     } catch (error) {
       res.status(CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({

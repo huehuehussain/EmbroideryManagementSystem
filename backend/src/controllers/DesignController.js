@@ -42,7 +42,7 @@ class DesignController {
 
   static async createDesign(req, res) {
     try {
-      const { design_name, designer_name, estimated_stitches, estimated_thread_usage } = req.body;
+      const { design_name, designer_name, inventory_items } = req.body;
 
       if (!design_name) {
         return res.status(CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
@@ -53,11 +53,9 @@ class DesignController {
       const designData = {
         design_name,
         designer_name,
-        estimated_stitches,
-        estimated_thread_usage,
       };
 
-      const design = await Design.create(designData);
+      const design = await Design.create(designData, inventory_items || []);
 
       res.status(CONSTANTS.HTTP_STATUS.CREATED).json({
         message: 'Design created successfully',
@@ -129,7 +127,7 @@ class DesignController {
   static async updateDesign(req, res) {
     try {
       const { id } = req.params;
-      const { design_name, designer_name, estimated_stitches, estimated_thread_usage } = req.body;
+      const { design_name, designer_name, inventory_items } = req.body;
 
       if (!design_name) {
         return res.status(CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
@@ -140,9 +138,7 @@ class DesignController {
       const design = await Design.update(id, {
         design_name,
         designer_name,
-        estimated_stitches,
-        estimated_thread_usage,
-      });
+      }, inventory_items || []);
 
       res.status(CONSTANTS.HTTP_STATUS.OK).json({
         message: 'Design updated successfully',

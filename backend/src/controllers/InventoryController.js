@@ -67,6 +67,22 @@ class InventoryController {
     }
   }
 
+  static async deleteItem(req, res) {
+    try {
+      const { id } = req.params;
+      const item = await InventoryService.deleteInventoryItem(id);
+
+      res.status(CONSTANTS.HTTP_STATUS.OK).json({
+        message: 'Inventory item deleted successfully',
+        item,
+      });
+    } catch (error) {
+      res.status(CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
+        error: error.message,
+      });
+    }
+  }
+
   static async deductStock(req, res) {
     try {
       const { id } = req.params;
@@ -120,6 +136,30 @@ class InventoryController {
       res.status(CONSTANTS.HTTP_STATUS.OK).json({
         message: 'Bulk deduction processed',
         results,
+      });
+    } catch (error) {
+      res.status(CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
+        error: error.message,
+      });
+    }
+  }
+
+  static async restockItem(req, res) {
+    try {
+      const { id } = req.params;
+      const { quantity } = req.body;
+
+      if (!quantity || quantity <= 0) {
+        return res.status(CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
+          error: 'Restock quantity must be greater than 0',
+        });
+      }
+
+      const item = await InventoryService.restockInventoryItem(id, quantity);
+
+      res.status(CONSTANTS.HTTP_STATUS.OK).json({
+        message: 'Inventory item restocked successfully',
+        item,
       });
     } catch (error) {
       res.status(CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({

@@ -9,6 +9,10 @@ function InventoryPage({ user, onLogout }) {
   const [lowStockItems, setLowStockItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [showRestockModal, setShowRestockModal] = useState(false);
+  const [restockingId, setRestockingId] = useState(null);
+  const [restockQuantity, setRestockQuantity] = useState('');
   const [formData, setFormData] = useState({
     item_name: '',
     item_type: 'thread',
@@ -47,9 +51,25 @@ function InventoryPage({ user, onLogout }) {
     e.preventDefault();
 
     try {
-      await inventoryAPI.createItem(formData);
-      alert('Inventory item created successfully!');
+      const dataToSend = {
+        item_name: formData.item_name,
+        item_type: formData.item_type,
+        quantity_available: parseFloat(formData.quantity_available),
+        minimum_stock_level: parseFloat(formData.minimum_stock_level),
+        unit_cost: parseFloat(formData.unit_cost),
+      };
+
+      console.log('Sending data:', dataToSend, 'Editing ID:', editingId);
+
+      if (editingId) {
+        await inventoryAPI.updateItem(editingId, dataToSend);
+        alert('Inventory item updated successfully!');
+      } else {
+        await inventoryAPI.createItem(dataToSend);
+        alert('Inventory item created successfully!');
+      }
       setShowForm(false);
+      setEditingId(null);
       setFormData({
         item_name: '',
         item_type: 'thread',
@@ -58,10 +78,89 @@ function InventoryPage({ user, onLogout }) {
         unit_cost: '',
       });
       const itemsRes = await inventoryAPI.getAllItems();
+      const lowStockRes = await inventoryAPI.getLowStockItems();
       setItems(itemsRes.data.items || []);
+      setLowStockItems(lowStockRes.data.items || []);
     } catch (error) {
-      alert('Error creating item: ' + error.message);
+      console.error('Error details:', error);
+      alert('Error saving item: ' + error.message);
     }
+  };
+
+  const handleEditItem = (item) => {
+    // Clear form first, then populate with new data
+    setFormData({
+      item_name: item.item_name || '',
+      item_type: item.item_type || 'thread',
+      quantity_available: item.quantity_available ? parseFloat(item.quantity_available) : '',
+      minimum_stock_level: item.minimum_stock_level ? parseFloat(item.minimum_stock_level) : '',
+      unit_cost: item.unit_cost ? parseFloat(item.unit_cost) : '',
+    });
+    setEditingId(item.id);
+    setShowForm(true);
+  };
+
+  const handleDeleteItem = async (id) => {
+    if (window.confirm('Are you sure you want to delete this item?')) {
+      try {
+        await inventoryAPI.deleteItem(id);
+        alert('Inventory item deleted successfully!');
+        const itemsRes = await inventoryAPI.getAllItems();
+        setItems(itemsRes.data.items || []);
+      } catch (error) {
+        alert('Error deleting item: ' + error.message);
+      }
+    }
+  };
+
+  const handleRestockClick = (item) => {
+    setRestockingId(item.id);
+    setRestockQuantity('');
+    setShowRestockModal(true);
+  };
+
+  const handleRestockSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!restockQuantity || parseInt(restockQuantity) <= 0) {
+      alert('Please enter a valid restock quantity');
+      return;
+    }
+
+    try {
+      const quantity = parseInt(restockQuantity);
+      await inventoryAPI.restockItem(restockingId, quantity);
+      alert('Item restocked successfully!');
+      setShowRestockModal(false);
+      setRestockingId(null);
+      setRestockQuantity('');
+      
+      // Refresh the inventory list
+      const itemsRes = await inventoryAPI.getAllItems();
+      setItems(itemsRes.data.items || []);
+      const lowStockRes = await inventoryAPI.getLowStockItems();
+      setLowStockItems(lowStockRes.data.items || []);
+    } catch (error) {
+      alert('Error restocking item: ' + error.message);
+    }
+  };
+
+  const handleRestockCancel = () => {
+    setShowRestockModal(false);
+    setRestockingId(null);
+    setRestockQuantity('');
+  };
+
+  const handleCancel = () => {
+    setShowForm(false);
+    setEditingId(null);
+    setFormData({
+      item_name: '',
+      item_type: 'thread',
+      quantity_available: '',
+      minimum_stock_level: '',
+      unit_cost: '',
+    });
   };
 
   if (loading) {
@@ -75,13 +174,19 @@ function InventoryPage({ user, onLogout }) {
       <div className="page-container">
         <h1>Inventory Management</h1>
 
-        <button onClick={() => setShowForm(!showForm)} className="btn-primary">
+        <button onClick={() => {
+          if (showForm) {
+            handleCancel();
+          } else {
+            setShowForm(true);
+          }
+        }} className="btn-primary">
           {showForm ? 'Cancel' : 'Add Inventory Item'}
         </button>
 
         {showForm && (
           <form onSubmit={handleCreateItem} className="form-container">
-            <h2>Add New Inventory Item</h2>
+            <h2>{editingId ? 'Edit Inventory Item' : 'Add New Inventory Item'}</h2>
 
             <div className="form-group">
               <label>Item Name</label>
@@ -109,6 +214,7 @@ function InventoryPage({ user, onLogout }) {
                 <label>Quantity Available</label>
                 <input
                   type="number"
+                  step="0.01"
                   name="quantity_available"
                   value={formData.quantity_available}
                   onChange={handleInputChange}
@@ -122,6 +228,7 @@ function InventoryPage({ user, onLogout }) {
                 <label>Minimum Stock Level</label>
                 <input
                   type="number"
+                  step="0.01"
                   name="minimum_stock_level"
                   value={formData.minimum_stock_level}
                   onChange={handleInputChange}
@@ -133,17 +240,20 @@ function InventoryPage({ user, onLogout }) {
                 <label>Unit Cost</label>
                 <input
                   type="number"
+                  step="0.01"
                   name="unit_cost"
                   value={formData.unit_cost}
                   onChange={handleInputChange}
-                  step="0.01"
                   required
                 />
               </div>
             </div>
 
             <button type="submit" className="btn-success">
-              Add Item
+              {editingId ? 'Update Item' : 'Add Item'}
+            </button>
+            <button type="button" onClick={handleCancel} className="btn-secondary">
+              Cancel
             </button>
           </form>
         )}
@@ -173,6 +283,7 @@ function InventoryPage({ user, onLogout }) {
                 <th>Min Level</th>
                 <th>Unit Cost</th>
                 <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -188,12 +299,44 @@ function InventoryPage({ user, onLogout }) {
                     <td className={`status ${isLowStock ? 'low' : 'ok'}`}>
                       {isLowStock ? 'Low Stock' : 'OK'}
                     </td>
+                    <td className="actions">
+                      <button onClick={() => handleEditItem(item)} className="btn-small btn-edit">Edit</button>
+                      <button onClick={() => handleDeleteItem(item.id)} className="btn-small btn-delete">Delete</button>
+                      {isLowStock && (
+                        <button onClick={() => handleRestockClick(item)} className="btn-small btn-restock">Restock</button>
+                      )}
+                    </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
         </div>
+
+        {showRestockModal && (
+          <div className="modal-overlay">
+            <div className="modal-content">
+              <h2>Restock Item</h2>
+              <form onSubmit={handleRestockSubmit}>
+                <div className="form-group">
+                  <label>Restock Quantity</label>
+                  <input
+                    type="number"
+                    value={restockQuantity}
+                    onChange={(e) => setRestockQuantity(e.target.value)}
+                    placeholder="Enter quantity to add"
+                    required
+                    min="1"
+                  />
+                </div>
+                <div className="modal-actions">
+                  <button type="submit" className="btn-success">Confirm Restock</button>
+                  <button type="button" onClick={handleRestockCancel} className="btn-secondary">Cancel</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
